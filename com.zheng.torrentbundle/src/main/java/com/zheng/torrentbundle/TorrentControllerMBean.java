@@ -1,4 +1,4 @@
-package main.java.com.zheng.torrentbundle;
+package com.zheng.torrentbundle;
 
 public interface TorrentControllerMBean {
 	static final java.lang.String OBJECT_NAME = "com.zheng:feature=TorrentControllerFeature,type=TorrentController,name=TorrentController";

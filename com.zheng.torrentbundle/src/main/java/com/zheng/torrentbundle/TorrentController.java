@@ -1,4 +1,4 @@
-package main.java.com.zheng.torrentbundle;
+package com.zheng.torrentbundle;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Set;
@@ -38,25 +39,47 @@ import com.turn.ttorrent.tracker.Tracker;
 		+ TorrentControllerMBean.OBJECT_NAME })
 public class TorrentController implements TorrentControllerMBean {
 
+	private Object lock = new Object();
+	private int trackerPortCount = 6960;
+
 	public void transferTorrent(String srcName, String destDir, String hosts,
 			String username, String password, String truststorePass,
 			String host, String port, String contrTorrDir) {
 
 		try {
 
+			int trackerport = 0;
 			// create .torrent file
-			Tracker tracker = new Tracker(new InetSocketAddress(6960));
-			File srcFile = new File(contrTorrDir + "/" + srcName);
-			Torrent torrent = Torrent.create(srcFile, new URI("http://" + host
-					+ ":6960/announce"), "createdByUser");
-			File torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
-			FileOutputStream fos = new FileOutputStream(torrentFile);
-			torrent.save(fos);
-			fos.close();
+			Tracker tracker = null;
+			Torrent torrent = null;
+			File torrentFile = null;
 
-			// start tracker and initial seed
-			tracker.announce(new TrackedTorrent(torrent));
-			tracker.start();
+			synchronized (lock) {
+				for (trackerport = trackerPortCount; trackerport <= 6969; trackerport++) {
+					InetSocketAddress tryAddress = new InetSocketAddress(
+							trackerport);
+					try {
+						// tests if port is in use. If not, an exception will be
+						// thrown
+						new Socket(tryAddress.getAddress(),
+								tryAddress.getPort()).close();
+					} catch (IOException ioe) {
+						tracker = new Tracker(tryAddress);
+						break;
+					}
+				}
+				File srcFile = new File(contrTorrDir + "/" + srcName);
+				torrent = Torrent.create(srcFile, new URI("http://" + host
+						+ ":" + trackerport + "/announce"), "createdByUser");
+				torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
+				FileOutputStream fos = new FileOutputStream(torrentFile);
+				torrent.save(fos);
+				fos.close();
+				tracker.announce(new TrackedTorrent(torrent));
+				tracker.start();
+				trackerPortCount++;
+			}
+
 			Client initialSeed = new Client(InetAddress.getLocalHost(),
 					new SharedTorrent(torrent, new File(contrTorrDir), true));
 			initialSeed.share();
@@ -84,11 +107,12 @@ public class TorrentController implements TorrentControllerMBean {
 
 			// zip up TorrentClient.jar and .torrent into one file
 			byte[] buffer = new byte[1024];
-
-			FileOutputStream zipfos = new FileOutputStream(contrTorrDir
-					+ "/package.zip");
+			String pkgName = srcName + "package";
+			String tcName = srcName + "TorrentClient.jar";
+			FileOutputStream zipfos = new FileOutputStream(contrTorrDir + "/"
+					+ pkgName + ".zip");
 			ZipOutputStream zos = new ZipOutputStream(zipfos);
-			ZipEntry ze = new ZipEntry("TorrentClient.jar");
+			ZipEntry ze = new ZipEntry(tcName);
 			zos.putNextEntry(ze);
 			FileInputStream in = new FileInputStream(contrTorrDir + "-config"
 					+ "/TorrentClient.jar");
@@ -114,7 +138,7 @@ public class TorrentController implements TorrentControllerMBean {
 			zos.close();
 
 			// push zip to targets
-			String destZipPath = destDir + "/package";
+			String destZipPath = destDir + "/" + pkgName;
 
 			String fileTransferURI = "https://" + host + ":" + port
 					+ "/IBMJMXConnectorREST/file/";
@@ -123,18 +147,18 @@ public class TorrentController implements TorrentControllerMBean {
 					+ URLEncoder.encode(destZipPath, "utf-8")
 					+ "?expandOnCompletion=true");
 
-			zipPost.setEntity(new FileEntity(new File(contrTorrDir
-					+ "/package.zip")));
+			zipPost.setEntity(new FileEntity(new File(contrTorrDir + "/"
+					+ pkgName + ".zip")));
 			zipPost.addHeader("com.ibm.websphere.collective.hostNames", hosts);
 
-			String destTCPath = destDir + "/TorrentClient.jar";
+			String destTCPath = destDir + "/" + tcName;
 			String destTorrPath = destDir + "/" + srcName + ".torrent";
-			String postCommand1 = "mv " + destDir
-					+ "/package/TorrentClient.jar " + destDir + "/package/"
-					+ srcName + ".torrent " + destDir;
+			String postCommand1 = "mv " + destDir + "/" + pkgName + "/"
+					+ tcName + " " + destDir + "/" + pkgName + "/" + srcName
+					+ ".torrent " + destDir;
 			String postCommand2 = "java -jar " + destTCPath + " "
 					+ destTorrPath + " " + destDir + " &";
-			String postCommand3 = "rmdir " + destDir + "/package";
+			String postCommand3 = "rmdir " + destDir + "/" + pkgName;
 			zipPost.addHeader(
 					"com.ibm.websphere.jmx.connector.rest.postTransferAction",
 					postCommand1 + "," + postCommand2 + "," + postCommand3);
@@ -170,6 +194,10 @@ public class TorrentController implements TorrentControllerMBean {
 			initialSeed.stop();
 			tracker.remove(torrent);
 			tracker.stop();
+
+			synchronized (lock) {
+				trackerPortCount--;
+			}
 
 		} catch (Exception e) {
 			e.printStackTrace();

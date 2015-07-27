@@ -1,4 +1,4 @@
-package main.java.com.zheng.torrentclient;
+package com.zheng.torrentclient;
 
 import java.io.BufferedWriter;
 import java.io.File;

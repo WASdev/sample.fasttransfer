@@ -1,4 +1,4 @@
-package main.java.com.zheng.torrentuserclient;
+package com.zheng.torrentuserclient;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,19 +40,24 @@ import com.ibm.websphere.jmx.connector.rest.ConnectorSettings;
 
 public class UserClient {
 	public static void main(String args[]) throws UnsupportedEncodingException {
-		//needed to stop HttpClient logging errors 
-		System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.Jdk14Logger");
-		
+		// needed to stop HttpClient logging errors
+		System.setProperty("org.apache.commons.logging.Log",
+				"org.apache.commons.logging.impl.Jdk14Logger");
+
 		if (args.length != 5) {
 			System.out
 					.println("Takes five arguments: config_file path_to_package dest_dir hosts onController\n");
 			System.out.println("dest_dir should not end with a slash\n");
-			System.out.println("Config_file should be formatted as follows:\n"
-					+ "quick start security username\n"
-					+ "quick start security password\n" + "trustStore Path\n"
-					+ "trustStore Password\n" + "controller host\n"
-					+ "controller port\n" + "controller torrent dir\n"
-					+ "clear controller torrent dir before upload (true or false)\n");
+			System.out
+					.println("Config_file should be formatted as follows:\n"
+							+ "quick start security username\n"
+							+ "quick start security password\n"
+							+ "trustStore Path\n"
+							+ "trustStore Password\n"
+							+ "controller host\n"
+							+ "controller port\n"
+							+ "controller torrent dir\n"
+							+ "clear controller torrent dir before upload (true or false)\n");
 			System.out
 					.println("hosts should be a list of hostnames separated by newlines\n");
 			System.out
@@ -244,9 +249,10 @@ public class UserClient {
 			e.printStackTrace();
 			System.exit(1);
 		}
-		
+
 		HttpDelete deleteTC = new HttpDelete(fileTransferURI
-				+ URLEncoder.encode(destDir + "/TorrentClient.jar", "utf-8"));
+				+ URLEncoder.encode(destDir + "/" + srcName
+						+ "TorrentClient.jar", "utf-8"));
 		deleteTC.addHeader("com.ibm.websphere.collective.hostNames", hostnames);
 
 		HttpDelete deleteTorr = new HttpDelete(fileTransferURI
