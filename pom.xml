@@ -10,6 +10,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<modules>
+		<module>restConnector</module>
 		<module>com.zheng.torrentbundle</module>
 		<module>TorrentClient</module>
 		<module>TorrentUserClient</module>
