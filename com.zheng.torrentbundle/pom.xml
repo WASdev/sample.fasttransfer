@@ -24,14 +24,14 @@
 			<version>4.5</version>
 		</dependency>
 		<dependency>
-			<groupId>com.ibm.wsspi.org.osgi.cmpn.5.0.0_1.0.9</groupId>
-			<artifactId>com.ibm.wsspi.org.osgi.cmpn.5.0.0_1.0.9</artifactId>
-			<version>1.0</version>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.core</artifactId>
+			<version>5.0.0</version>
 		</dependency>
 		<dependency>
-			<groupId>com.ibm.wsspi.org.osgi.core.5.0.0_1.0.9</groupId>
-			<artifactId>com.ibm.wsspi.org.osgi.core.5.0.0_1.0.9</artifactId>
-			<version>1.0</version>
+			<groupId>org.osgi</groupId>
+			<artifactId>org.osgi.compendium</artifactId>
+			<version>5.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>restConnector</groupId>
@@ -52,62 +52,11 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-install-plugin</artifactId>
-				<version>2.4</version>
-				<executions>
-					<execution>
-						<id>install-artifacts.1</id>
-						<phase>initialize</phase>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>restConnector</groupId>
-							<artifactId>restConnector</artifactId>
-							<version>1.0</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/lib/restConnector.jar</file>
-						</configuration>
-					</execution>
-					<execution>
-						<id>install-artifacts.2</id>
-						<phase>initialize</phase>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>com.ibm.wsspi.org.osgi.cmpn.5.0.0_1.0.9</groupId>
-							<artifactId>com.ibm.wsspi.org.osgi.cmpn.5.0.0_1.0.9</artifactId>
-							<version>1.0</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/lib/com.ibm.wsspi.org.osgi.cmpn.5.0.0_1.0.9.jar</file>
-						</configuration>
-					</execution>
-					<execution>
-						<id>install-artifacts.3</id>
-						<phase>initialize</phase>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-						<configuration>
-							<groupId>com.ibm.wsspi.org.osgi.core.5.0.0_1.0.9</groupId>
-							<artifactId>com.ibm.wsspi.org.osgi.core.5.0.0_1.0.9</artifactId>
-							<version>1.0</version>
-							<packaging>jar</packaging>
-							<file>${basedir}/lib/com.ibm.wsspi.org.osgi.core.5.0.0_1.0.9.jar</file>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
 				<groupId>org.apache.felix</groupId>
 				<artifactId>maven-bundle-plugin</artifactId>
 				<version>2.5.0</version>
 				<extensions>true</extensions>
 				<configuration>
-					<manifestLocation>src/main/resources/META-INF</manifestLocation>
-					<rebuildBundle>true</rebuildBundle>
 					<instructions>
 						<Private-Package>com.zheng.torrentbundle</Private-Package>
 						<Bundle-SymbolicName>${pom.artifactId}</Bundle-SymbolicName>

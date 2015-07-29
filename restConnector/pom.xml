@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>restConnector</groupId>
+  <artifactId>restConnector</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0</version>
+  <description>POM was created from install:install-file</description>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>2.4</version>
+        <executions>
+          <execution>
+            <id>install-artifacts</id>
+            <phase>package</phase>
+            <goals>
+              <goal>install-file</goal>
+            </goals>
+            <configuration>
+              <groupId>restConnector</groupId>
+              <artifactId>restConnector</artifactId>
+              <version>1.0</version>
+              <packaging>jar</packaging>
+              <generatePom>true</generatePom>
+              <file>lib/restConnector.jar</file>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
