@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -40,45 +41,43 @@ import com.turn.ttorrent.tracker.Tracker;
 public class TorrentController implements TorrentControllerMBean {
 
 	private Object lock = new Object();
-	private int trackerPortCount = 6960;
+	private boolean trackerStarted = false;
+	private Tracker tracker = null;
+	private int trackerport = 0;
 
-	public void transferTorrent(String srcName, String destDir, String hosts,
+	public int transferTorrent(String srcName, String destDir, String hosts,
 			String username, String password, String truststorePass,
 			String host, String port, String contrTorrDir) {
 
 		try {
-
-			int trackerport = 0;
-			// create .torrent file
-			Tracker tracker = null;
-			Torrent torrent = null;
-			File torrentFile = null;
-
 			synchronized (lock) {
-				for (trackerport = trackerPortCount; trackerport <= 6969; trackerport++) {
-					InetSocketAddress tryAddress = new InetSocketAddress(
-							trackerport);
-					try {
-						// tests if port is in use. If not, an exception will be
-						// thrown
-						new Socket(tryAddress.getAddress(),
-								tryAddress.getPort()).close();
-					} catch (IOException ioe) {
-						tracker = new Tracker(tryAddress);
-						break;
+				if (!trackerStarted) {
+					for (trackerport = 6961; trackerport <= 6969; trackerport++) {
+						InetSocketAddress tryAddress = new InetSocketAddress(
+								trackerport);
+						try {
+							// tests if port is in use. If not, an exception
+							// will be thrown
+							new Socket(tryAddress.getAddress(),
+									tryAddress.getPort()).close();
+						} catch (IOException ioe) {
+							tracker = new Tracker(tryAddress);
+							break;
+						}
 					}
+					tracker.start();
+					trackerStarted = true;
 				}
-				File srcFile = new File(contrTorrDir + "/" + srcName);
-				torrent = Torrent.create(srcFile, new URI("http://" + host
-						+ ":" + trackerport + "/announce"), "createdByUser");
-				torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
-				FileOutputStream fos = new FileOutputStream(torrentFile);
-				torrent.save(fos);
-				fos.close();
-				tracker.announce(new TrackedTorrent(torrent));
-				tracker.start();
-				trackerPortCount++;
 			}
+
+			File srcFile = new File(contrTorrDir + "/" + srcName);
+			Torrent torrent = Torrent.create(srcFile, new URI("http://" + host
+					+ ":" + trackerport + "/announce"), "createdByUser");
+			File torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
+			FileOutputStream fos = new FileOutputStream(torrentFile);
+			torrent.save(fos);
+			fos.close();
+			tracker.announce(new TrackedTorrent(torrent));
 
 			Client initialSeed = new Client(InetAddress.getLocalHost(),
 					new SharedTorrent(torrent, new File(contrTorrDir), true));
@@ -171,18 +170,20 @@ public class TorrentController implements TorrentControllerMBean {
 			long startTorrentTime = System.currentTimeMillis();
 
 			// wait up to 5 minutes for all clients to connect
-			while (initialSeed.getPeers().size() < hosts.split(",").length
+			while (numDistinctPeers(initialSeed.getPeers()) < hosts
+					.split(",").length + 1
 					&& (System.currentTimeMillis() - startTorrentTime) <= 300000) {
 				Thread.sleep(1000);
 			}
+			System.out.println("All Clients Connected!");
 
-			// stop when all torrent clients are seeding or disconnected
 			boolean done = false;
 			while (!done) {
 				// check every second
 				Thread.sleep(1000);
 				done = true;
 				Set<SharingPeer> peers = initialSeed.getPeers();
+				numDistinctPeers(peers);
 				for (SharingPeer p : peers) {
 					if (p.isConnected() && !p.isSeed()) {
 						done = false;
@@ -190,19 +191,26 @@ public class TorrentController implements TorrentControllerMBean {
 					}
 				}
 			}
-
+			
+			int numpeers = numDistinctPeers(initialSeed.getPeers()) - 1;
 			initialSeed.stop();
-			tracker.remove(torrent);
-			tracker.stop();
-
-			synchronized (lock) {
-				trackerPortCount--;
-			}
-
+			// remove torrent after 20 seconds
+			tracker.remove(torrent, 20000);
+			return numpeers;
+			
 		} catch (Exception e) {
 			e.printStackTrace();
+			return 0;
 		}
 
+	}
+
+	private int numDistinctPeers(Set<SharingPeer> peers) {
+		HashSet<String> hs = new HashSet<String>();
+		for (SharingPeer p : peers) {
+			hs.add(p.getIp());
+		}
+		return hs.size();
 	}
 
 	public void cleanTorrentDir(String contrTorrDir) {

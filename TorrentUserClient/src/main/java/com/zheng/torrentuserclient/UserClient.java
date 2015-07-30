@@ -226,17 +226,19 @@ public class UserClient {
 				// start torrent process
 				System.out.println("Starting fast transfer process...");
 				long startTime2 = System.currentTimeMillis();
-				mbs.invoke(torrentControllerMBean, "transferTorrent",
-						new Object[] { srcName, destDir, hostnames, username,
-								password, truststorePass, host, port,
-								contrTorrDir }, new String[] {
+				int numCompl = (int) mbs.invoke(torrentControllerMBean,
+						"transferTorrent", new Object[] { srcName, destDir,
+								hostnames, username, password, truststorePass,
+								host, port, contrTorrDir }, new String[] {
 								"java.lang.String", "java.lang.String",
 								"java.lang.String", "java.lang.String",
 								"java.lang.String", "java.lang.String",
 								"java.lang.String", "java.lang.String",
 								"java.lang.String" });
 				long endTime2 = System.currentTimeMillis();
-				System.out.println("Transfer finished in "
+				System.out.println("Transfer finished successfully for "
+						+ numCompl + " out of " + hostnames.split(",").length
+						+ " hosts in "
 						+ ((double) (endTime2 - startTime2) / 1000)
 						+ " seconds! Cleaning up...");
 

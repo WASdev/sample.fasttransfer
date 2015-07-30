@@ -22,30 +22,40 @@ public class TorrentClient {
 		try {
 			Client client = new Client(InetAddress.getLocalHost(),
 					SharedTorrent.fromFile(torrentFile, destDir));
-			
-			String trackerhost = client.getTorrent().getAnnounceList().get(0).get(0).getHost();
-			String trackerip = InetAddress.getByName(trackerhost).getHostAddress();
+
+			String trackerhost = client.getTorrent().getAnnounceList().get(0)
+					.get(0).getHost();
+			String trackerip = InetAddress.getByName(trackerhost)
+					.getHostAddress();
 			client.share();
 
 			// done when seed on tracker host is disconnected
-			while(!client.getTorrent().isInitialized()){
+			while (!client.getTorrent().isInitialized()) {
 				Thread.sleep(1000);
 			}
 			Thread.sleep(5000);
-			
+
 			while (true) {
 				// check every second
 				Thread.sleep(1000);
 				Set<SharingPeer> peers = client.getPeers();
-				if(peers.isEmpty() || peers == null){
+				if (peers.isEmpty() || peers == null) {
 					client.stop();
 					System.exit(0);
 				}
-				for(SharingPeer p : peers){
-					if(p.getIp().equals(trackerip) && !p.isConnected()){
-						client.stop();
-						System.exit(0);
+				boolean initSeedExists = false;
+				for (SharingPeer p : peers) {
+					if (p.getIp().equals(trackerip)) {
+						initSeedExists = true;
+						if (!p.isConnected()) {
+							client.stop();
+							System.exit(0);
+						}
 					}
+				}
+				if(!initSeedExists){
+					client.stop();
+					System.exit(0);
 				}
 			}
 
