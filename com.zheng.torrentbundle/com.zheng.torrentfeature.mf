@@ -1,8 +1,0 @@
-Manifest-Version: 1.0
-IBM-ShortName: com.zheng.torrentfeature
-IBM-Feature-Version: 2
-Subsystem-SymbolicName: com.zheng.torrentfeature;visibility:=public
-Subsystem-Version: 1.0.0
-Subsystem-Type: osgi.subsystem.feature
-Subsystem-ManifestVersion: 1.0
-Subsystem-Content: com.zheng.torrentbundle;version="1.0.0"

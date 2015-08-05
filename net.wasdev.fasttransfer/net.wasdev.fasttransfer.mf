@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+IBM-ShortName: net.wasdev.fasttransfer
+IBM-Feature-Version: 2
+Subsystem-SymbolicName: net.wasdev.fasttransfer;visibility:=public
+Subsystem-Version: 1.0.0
+Subsystem-Type: osgi.subsystem.feature
+Subsystem-ManifestVersion: 1.0
+Subsystem-Content: net.wasdev.fasttransfer;version="1.0.0"
