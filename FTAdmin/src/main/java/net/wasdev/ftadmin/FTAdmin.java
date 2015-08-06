@@ -190,7 +190,7 @@ public class FTAdmin {
 			MBeanServerConnection mbs = connector.getMBeanServerConnection();
 
 			ObjectName torrentControllerMBean = new ObjectName(
-					"com.zheng:feature=TorrentControllerFeature,type=TorrentController,name=TorrentController");
+					"net.wasdev:feature=FastTransferFeature,type=FastTransfer,name=FastTransfer");
 
 			if (mbs.isRegistered(torrentControllerMBean)) {
 				if (!onController) {

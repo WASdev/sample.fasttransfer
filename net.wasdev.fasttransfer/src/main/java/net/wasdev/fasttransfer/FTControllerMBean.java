@@ -1,7 +1,7 @@
 package net.wasdev.fasttransfer;
 
-public interface TorrentControllerMBean {
-	static final java.lang.String OBJECT_NAME = "com.zheng:feature=TorrentControllerFeature,type=TorrentController,name=TorrentController";
+public interface FTControllerMBean {
+	static final java.lang.String OBJECT_NAME = "net.wasdev:feature=FastTransferFeature,type=FastTransfer,name=FastTransfer";
 
 	public int transferTorrent(String srcName, String destDir, String hosts,
 			String username, String password, String truststorePass,

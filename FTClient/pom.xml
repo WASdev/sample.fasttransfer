@@ -58,7 +58,7 @@
 					<appendAssemblyId>false</appendAssemblyId>
 					<archive>
 						<manifest>
-							<mainClass>nte.wasdev.ftclient.FTClient</mainClass>
+							<mainClass>net.wasdev.ftclient.FTClient</mainClass>
 						</manifest>
 					</archive>
 					<descriptorRefs>

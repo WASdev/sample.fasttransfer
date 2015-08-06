@@ -36,9 +36,9 @@ import com.turn.ttorrent.common.Torrent;
 import com.turn.ttorrent.tracker.TrackedTorrent;
 import com.turn.ttorrent.tracker.Tracker;
 
-@Component(name = "TorrentController", service = { TorrentControllerMBean.class }, immediate = true, property = { "jmx.objectname="
-		+ TorrentControllerMBean.OBJECT_NAME })
-public class TorrentController implements TorrentControllerMBean {
+@Component(name = "FTController", service = { FTControllerMBean.class }, immediate = true, property = { "jmx.objectname="
+		+ FTControllerMBean.OBJECT_NAME })
+public class FTController implements FTControllerMBean {
 
 	private Object lock = new Object();
 	private boolean trackerStarted = false;
@@ -48,6 +48,9 @@ public class TorrentController implements TorrentControllerMBean {
 	public int transferTorrent(String srcName, String destDir, String hosts,
 			String username, String password, String truststorePass,
 			String host, String port, String contrTorrDir) {
+
+		Client initialSeed = null;
+		Torrent torrent = null;
 
 		try {
 			synchronized (lock) {
@@ -71,15 +74,15 @@ public class TorrentController implements TorrentControllerMBean {
 			}
 
 			File srcFile = new File(contrTorrDir + "/" + srcName);
-			Torrent torrent = Torrent.create(srcFile, new URI("http://" + host
-					+ ":" + trackerport + "/announce"), "createdByUser");
+			torrent = Torrent.create(srcFile, new URI("http://" + host + ":"
+					+ trackerport + "/announce"), "createdByUser");
 			File torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
 			FileOutputStream fos = new FileOutputStream(torrentFile);
 			torrent.save(fos);
 			fos.close();
 			tracker.announce(new TrackedTorrent(torrent));
 
-			Client initialSeed = new Client(InetAddress.getLocalHost(),
+			initialSeed = new Client(InetAddress.getLocalHost(),
 					new SharedTorrent(torrent, new File(contrTorrDir), true));
 			initialSeed.share();
 			while (!initialSeed.getTorrent().isInitialized()) {
@@ -104,17 +107,17 @@ public class TorrentController implements TorrentControllerMBean {
 					.setDefaultCredentialsProvider(credentialsProvider)
 					.setSSLSocketFactory(sslsf).build();
 
-			// zip up TorrentClient.jar and .torrent into one file
+			// zip up FTClient.jar and .torrent into one file
 			byte[] buffer = new byte[1024];
 			String pkgName = srcName + "package";
-			String tcName = srcName + "TorrentClient.jar";
+			String tcName = srcName + "FTClient.jar";
 			FileOutputStream zipfos = new FileOutputStream(contrTorrDir + "/"
 					+ pkgName + ".zip");
 			ZipOutputStream zos = new ZipOutputStream(zipfos);
 			ZipEntry ze = new ZipEntry(tcName);
 			zos.putNextEntry(ze);
 			FileInputStream in = new FileInputStream(contrTorrDir + "-config"
-					+ "/TorrentClient.jar");
+					+ "/FTClient.jar");
 
 			int len;
 			while ((len = in.read(buffer)) > 0) {
@@ -170,8 +173,7 @@ public class TorrentController implements TorrentControllerMBean {
 			long startTorrentTime = System.currentTimeMillis();
 
 			// wait up to 5 minutes for all clients to connect
-			while (numDistinctPeers(initialSeed.getPeers()) < hosts
-					.split(",").length + 1
+			while (numDistinctPeers(initialSeed.getPeers()) < hosts.split(",").length + 1
 					&& (System.currentTimeMillis() - startTorrentTime) <= 300000) {
 				Thread.sleep(1000);
 			}
@@ -191,18 +193,18 @@ public class TorrentController implements TorrentControllerMBean {
 					}
 				}
 			}
-			
 			int numpeers = numDistinctPeers(initialSeed.getPeers()) - 1;
+			return numpeers;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			int numpeers = numDistinctPeers(initialSeed.getPeers()) - 1;
+			return numpeers;
+		} finally {
 			initialSeed.stop();
 			// remove torrent after 20 seconds
 			tracker.remove(torrent, 20000);
-			return numpeers;
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			return 0;
 		}
-
 	}
 
 	private int numDistinctPeers(Set<SharingPeer> peers) {

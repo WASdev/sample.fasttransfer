@@ -73,7 +73,6 @@ public class FTClient {
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
-			System.out.println("HEY HI!");
 			System.exit(0);
 		}
 	}
