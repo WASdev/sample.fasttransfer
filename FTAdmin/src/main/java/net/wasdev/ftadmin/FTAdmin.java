@@ -211,6 +211,7 @@ public class FTAdmin {
 					post.setEntity(new FileEntity(srcFile));
 					try {
 						httpclient.execute(post);
+						httpclient.close();
 					} catch (IOException e) {
 						System.out
 								.println("invalid host or port, or server not running");
@@ -240,7 +241,7 @@ public class FTAdmin {
 						+ numCompl + " out of " + hostnames.split(",").length
 						+ " hosts in "
 						+ ((double) (endTime2 - startTime2) / 1000)
-						+ " seconds! Cleaning up...");
+						+ " seconds!");
 
 			} else {
 				System.out.println("FastTransfer feature not up");
@@ -251,27 +252,5 @@ public class FTAdmin {
 			e.printStackTrace();
 			System.exit(1);
 		}
-
-		HttpDelete deleteTC = new HttpDelete(fileTransferURI
-				+ URLEncoder.encode(destDir + "/" + srcName
-						+ "TorrentClient.jar", "utf-8"));
-		deleteTC.addHeader("com.ibm.websphere.collective.hostNames", hostnames);
-
-		HttpDelete deleteTorr = new HttpDelete(fileTransferURI
-				+ URLEncoder.encode(destDir + "/" + srcName + ".torrent",
-						"utf-8"));
-		deleteTorr.addHeader("com.ibm.websphere.collective.hostNames",
-				hostnames);
-
-		try {
-			httpclient.execute(deleteTC);
-			httpclient.execute(deleteTorr);
-			httpclient.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		System.out.println("Done!");
-
 	}
 }
