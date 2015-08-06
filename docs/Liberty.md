@@ -1,4 +1,4 @@
-##Getting WAS Liberty
+## Getting WAS Liberty
 
 Creating a collective requires the collectiveController-1.0 feature. The collectiveController-1.0 feature and its capabilities are available only in WebSphere® Application Server Liberty Network Deployment and WebSphere Application Server Liberty for z/OS®. The feature is not available in WebSphere Application Server Liberty, WebSphere Application Server Liberty - Express, or WebSphere Application Server Liberty Core. If you have a WebSphere Application Server Liberty Network Deployment installation, you can use its collectiveController-1.0 feature to work with collective members from WebSphere Application Server Liberty, WebSphere Application Server Liberty - Express, or WebSphere Application Server Liberty Core installations.
 
