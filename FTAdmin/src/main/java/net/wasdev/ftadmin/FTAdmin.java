@@ -73,7 +73,7 @@ public class FTAdmin {
 		String truststorePass = null;
 		String host = null;
 		String port = null;
-		String contrTorrDir = null;
+		String contrPackageDir = null;
 		Boolean clearCTD = false;
 		String str_clearCTD = null;
 
@@ -91,7 +91,7 @@ public class FTAdmin {
 			truststorePass = configReader.readLine();
 			host = configReader.readLine();
 			port = configReader.readLine();
-			contrTorrDir = configReader.readLine();
+			contrPackageDir = configReader.readLine();
 			str_clearCTD = configReader.readLine();
 		} catch (IOException e) {
 			System.out.println("improper config");
@@ -170,7 +170,7 @@ public class FTAdmin {
 		String fileTransferURI = "https://" + host + ":" + port
 				+ "/IBMJMXConnectorREST/file/";
 
-		// get MBean for torrentController and execute transfer
+		// get MBean for FTController and execute transfer
 		System.setProperty("javax.net.ssl.trustStore", truststorePath);
 		System.setProperty("javax.net.ssl.trustStorePassword", truststorePass);
 
@@ -189,23 +189,23 @@ public class FTAdmin {
 			connector.connect();
 			MBeanServerConnection mbs = connector.getMBeanServerConnection();
 
-			ObjectName torrentControllerMBean = new ObjectName(
+			ObjectName FTControllerMBean = new ObjectName(
 					"net.wasdev:feature=FastTransferFeature,type=FastTransfer,name=FastTransfer");
 
-			if (mbs.isRegistered(torrentControllerMBean)) {
+			if (mbs.isRegistered(FTControllerMBean)) {
 				if (!onController) {
 					if (clearCTD) {
 						// clean out torrent directory on controller
 						System.out.println("Cleaning torrent directory...");
-						mbs.invoke(torrentControllerMBean, "cleanTorrentDir",
-								new Object[] { contrTorrDir },
+						mbs.invoke(FTControllerMBean, "cleanPackageDir",
+								new Object[] { contrPackageDir },
 								new String[] { "java.lang.String" });
 					}
 					// upload package to controller
 					long startTime = System.currentTimeMillis();
 					System.out.println("Uploading package to Controller...");
 					HttpPost post = new HttpPost(fileTransferURI
-							+ URLEncoder.encode(contrTorrDir + "/" + srcName,
+							+ URLEncoder.encode(contrPackageDir + "/" + srcName,
 									"utf-8"));
 
 					post.setEntity(new FileEntity(srcFile));
@@ -226,10 +226,10 @@ public class FTAdmin {
 				// start torrent process
 				System.out.println("Starting fast transfer process...");
 				long startTime2 = System.currentTimeMillis();
-				int numCompl = (int) mbs.invoke(torrentControllerMBean,
-						"transferTorrent", new Object[] { srcName, destDir,
+				int numCompl = (int) mbs.invoke(FTControllerMBean,
+						"transferPackage", new Object[] { srcName, destDir,
 								hostnames, username, password, truststorePass,
-								host, port, contrTorrDir }, new String[] {
+								host, port, contrPackageDir }, new String[] {
 								"java.lang.String", "java.lang.String",
 								"java.lang.String", "java.lang.String",
 								"java.lang.String", "java.lang.String",
@@ -243,7 +243,7 @@ public class FTAdmin {
 						+ " seconds! Cleaning up...");
 
 			} else {
-				System.out.println("Torrent transfer feature not up");
+				System.out.println("FastTransfer feature not up");
 				System.exit(1);
 			}
 		} catch (MalformedObjectNameException | InstanceNotFoundException

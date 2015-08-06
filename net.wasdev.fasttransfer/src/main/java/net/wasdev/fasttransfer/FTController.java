@@ -45,9 +45,9 @@ public class FTController implements FTControllerMBean {
 	private Tracker tracker = null;
 	private int trackerport = 0;
 
-	public int transferTorrent(String srcName, String destDir, String hosts,
+	public int transferPackage(String srcName, String destDir, String hosts,
 			String username, String password, String truststorePass,
-			String host, String port, String contrTorrDir) {
+			String host, String port, String contrPackageDir) {
 
 		Client initialSeed = null;
 		Torrent torrent = null;
@@ -73,7 +73,7 @@ public class FTController implements FTControllerMBean {
 				}
 			}
 
-			File srcFile = new File(contrTorrDir + "/" + srcName);
+			File srcFile = new File(contrPackageDir + "/" + srcName);
 			torrent = Torrent.create(srcFile, new URI("http://" + host + ":"
 					+ trackerport + "/announce"), "createdByUser");
 			File torrentFile = new File(srcFile.getAbsoluteFile() + ".torrent");
@@ -83,7 +83,7 @@ public class FTController implements FTControllerMBean {
 			tracker.announce(new TrackedTorrent(torrent));
 
 			initialSeed = new Client(InetAddress.getLocalHost(),
-					new SharedTorrent(torrent, new File(contrTorrDir), true));
+					new SharedTorrent(torrent, new File(contrPackageDir), true));
 			initialSeed.share();
 			while (!initialSeed.getTorrent().isInitialized()) {
 				Thread.sleep(1000);
@@ -98,7 +98,7 @@ public class FTController implements FTControllerMBean {
 			sslContext = SSLContexts
 					.custom()
 					.loadTrustMaterial(
-							new File(contrTorrDir + "-config/trust.jks"),
+							new File(contrPackageDir + "-config/trust.jks"),
 							truststorePass.toCharArray()).build();
 
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
@@ -111,12 +111,12 @@ public class FTController implements FTControllerMBean {
 			byte[] buffer = new byte[1024];
 			String pkgName = srcName + "package";
 			String tcName = srcName + "FTClient.jar";
-			FileOutputStream zipfos = new FileOutputStream(contrTorrDir + "/"
+			FileOutputStream zipfos = new FileOutputStream(contrPackageDir + "/"
 					+ pkgName + ".zip");
 			ZipOutputStream zos = new ZipOutputStream(zipfos);
 			ZipEntry ze = new ZipEntry(tcName);
 			zos.putNextEntry(ze);
-			FileInputStream in = new FileInputStream(contrTorrDir + "-config"
+			FileInputStream in = new FileInputStream(contrPackageDir + "-config"
 					+ "/FTClient.jar");
 
 			int len;
@@ -149,7 +149,7 @@ public class FTController implements FTControllerMBean {
 					+ URLEncoder.encode(destZipPath, "utf-8")
 					+ "?expandOnCompletion=true");
 
-			zipPost.setEntity(new FileEntity(new File(contrTorrDir + "/"
+			zipPost.setEntity(new FileEntity(new File(contrPackageDir + "/"
 					+ pkgName + ".zip")));
 			zipPost.addHeader("com.ibm.websphere.collective.hostNames", hosts);
 
@@ -215,9 +215,9 @@ public class FTController implements FTControllerMBean {
 		return hs.size();
 	}
 
-	public void cleanTorrentDir(String contrTorrDir) {
+	public void cleanPackageDir(String contrPackageDir) {
 		try {
-			FileUtils.cleanDirectory(new File(contrTorrDir));
+			FileUtils.cleanDirectory(new File(contrPackageDir));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
