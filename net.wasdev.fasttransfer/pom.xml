@@ -33,8 +33,8 @@
       <version>5.0.0</version>
     </dependency>
     <dependency>
-      <groupId>restConnector</groupId>
-      <artifactId>restConnector</artifactId>
+      <groupId>com.ibm.websphere.jmx.connector.rest</groupId>
+      <artifactId>com.ibm.websphere.jmx.connector.rest</artifactId>
       <version>1.0</version>
     </dependency>
   </dependencies>

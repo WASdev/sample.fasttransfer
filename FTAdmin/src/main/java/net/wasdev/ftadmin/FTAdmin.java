@@ -27,7 +27,6 @@ import javax.net.ssl.SSLContext;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.FileEntity;
@@ -40,120 +39,128 @@ import com.ibm.websphere.jmx.connector.rest.ConnectorSettings;
 
 public class FTAdmin {
 	public static void main(String args[]) throws UnsupportedEncodingException {
-		// needed to stop HttpClient logging errors
+		// for logging
 		System.setProperty("org.apache.commons.logging.Log",
 				"org.apache.commons.logging.impl.Jdk14Logger");
-
 		if (args.length != 5) {
-			System.out
-					.println("Takes five arguments: config_file path_to_package dest_dir hosts onController\n");
-			System.out.println("dest_dir should not end with a slash\n");
-			System.out
-					.println("Config_file should be formatted as follows:\n"
-							+ "quick start security username\n"
-							+ "quick start security password\n"
-							+ "trustStore Path\n"
-							+ "trustStore Password\n"
-							+ "controller host\n"
-							+ "controller port\n"
-							+ "controller torrent dir\n"
-							+ "clear controller torrent dir before upload (true or false)\n");
-			System.out
-					.println("hosts should be a list of hostnames separated by newlines\n");
-			System.out
-					.println("onController indicates whether the package is already on the Controller. Its value is either true or false. If it is true, path_to_package can just be the name of the file.\n");
+			printHelp();
 			System.exit(0);
-		}
+		}	
+		Config config = readConfig(new File(args[0]));
+		// get the package to transfer and where to transfer to
+		File packageFile = new File(args[1]);
+		String destDir = args[2];
+		String destHosts = readHosts(new File(args[3]));
+		// is the package already on the controller?
+		Boolean onController = readOnController(args[4]);
+		executeTransfer(config, packageFile, destDir, destHosts, onController);
+	}
 
-		// parse config file
-		BufferedReader configReader = null;
-		String username = null;
-		String password = null;
-		String truststorePath = null;
-		String truststorePass = null;
-		String host = null;
-		String port = null;
-		String contrPackageDir = null;
-		Boolean clearCTD = false;
-		String str_clearCTD = null;
+	private static void printHelp() {
+		System.out
+				.println("Takes five arguments: config_file path_to_package dest_dir hosts onController\n");
+		System.out.println("dest_dir should not end with a slash\n");
+		System.out
+				.println("Config_file should be formatted as follows:\n"
+						+ "quick start security username\n"
+						+ "quick start security password\n"
+						+ "trustStore Path\n"
+						+ "trustStore Password\n"
+						+ "controller host\n"
+						+ "controller port\n"
+						+ "controller packakge directory path\n"
+						+ "clear controller package directory before upload (true or false)\n");
+		System.out
+				.println("hosts should be a list of hostnames separated by newlines\n");
+		System.out
+				.println("onController indicates whether the package is already on the Controller. Its value is either true or false. If it is true, path_to_package can just be the name of the file.\n");
+	}
 
-		try {
-			configReader = new BufferedReader(new FileReader(args[0]));
+	private static Config readConfig(File configFile) {
+
+		Config config = new Config();
+		String str_clearCPD = null;
+
+		try (BufferedReader configReader = new BufferedReader(new FileReader(
+				configFile))) {
+			config.setUsername(configReader.readLine());
+			config.setPassword(configReader.readLine());
+			config.setTruststorePath(configReader.readLine());
+			config.setTruststorePass(configReader.readLine());
+			config.setHost(configReader.readLine());
+			config.setPort(configReader.readLine());
+			config.setContrPackageDir(configReader.readLine());
+			str_clearCPD = configReader.readLine();
 		} catch (FileNotFoundException e) {
 			System.out.println("Config file does not exist!");
 			System.exit(1);
-		}
-
-		try {
-			username = configReader.readLine();
-			password = configReader.readLine();
-			truststorePath = configReader.readLine();
-			truststorePass = configReader.readLine();
-			host = configReader.readLine();
-			port = configReader.readLine();
-			contrPackageDir = configReader.readLine();
-			str_clearCTD = configReader.readLine();
 		} catch (IOException e) {
 			System.out.println("improper config");
 			System.exit(1);
 		}
 
-		if (str_clearCTD.toLowerCase().equals("true")) {
-			clearCTD = true;
-		} else if (str_clearCTD.toLowerCase().equals("false")) {
-			clearCTD = false;
+		if (str_clearCPD.toLowerCase().equals("true")) {
+			config.setClearCPD(true);
+		} else if (str_clearCPD.toLowerCase().equals("false")) {
+			config.setClearCPD(false);
 		} else {
 			System.out
-					.println("invalid option for clearing controller torrent dir");
+					.println("invalid option for clearing controller package directory");
 			System.exit(1);
 		}
 
-		// get src and dest
-		File srcFile = new File(args[1]);
-		String srcName = srcFile.getName();
-		String destDir = args[2];
+		return config;
+	}
 
-		// create comma separated list of hosts from hosts file
-		BufferedReader hostsReader = null;
-		String hostnames = "";
+	private static String readHosts(File hostsFile) {
+		String hosts = "";
 		String line;
 
-		try {
-			hostsReader = new BufferedReader(new FileReader(args[3]));
+		try (BufferedReader hostsReader = new BufferedReader(new FileReader(
+				hostsFile));) {
 			while ((line = hostsReader.readLine()) != null) {
-				hostnames += (line + ",");
+				hosts += (line + ",");
 			}
-			if (hostnames.length() > 0) {
-				hostnames = hostnames.substring(0, hostnames.length() - 1);
+			if (hosts.length() > 0) {
+				hosts = hosts.substring(0, hosts.length() - 1);
 			}
 		} catch (FileNotFoundException e) {
 			System.out.println("Hosts file does not exist!");
 			System.exit(1);
 		} catch (IOException e) {
-			System.out.println("Error in hostnames file");
+			System.out.println("Error in hosts file");
 			System.exit(1);
 		}
 
+		return hosts;
+	}
+
+	private static Boolean readOnController(String onContrStr) {
 		Boolean onController = false;
-		if (args[4].equals("false")) {
+		if (onContrStr.equals("false")) {
 			onController = false;
-		} else if (args[4].equals("true")) {
+		} else if (onContrStr.equals("true")) {
 			onController = true;
 		} else {
 			System.out.println("Invalid onController option");
 			System.exit(1);
 		}
 
-		// set up HTTPClient for REST API
+		return onController;
+	}
+
+	private static CloseableHttpClient setupHttpClient(Config config) {
 		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-		credentialsProvider.setCredentials(AuthScope.ANY,
-				new UsernamePasswordCredentials(username, password));
+		credentialsProvider.setCredentials(
+				AuthScope.ANY,
+				new UsernamePasswordCredentials(config.getUsername(), config
+						.getPassword()));
 		SSLContext sslContext = null;
 		try {
 			sslContext = SSLContexts
 					.custom()
-					.loadTrustMaterial(new File(truststorePath),
-							truststorePass.toCharArray()).build();
+					.loadTrustMaterial(new File(config.getTruststorePath()),
+							config.getTruststorePass().toCharArray()).build();
 		} catch (KeyManagementException | NoSuchAlgorithmException
 				| KeyStoreException | CertificateException | IOException e) {
 			System.out.println("invalid truststore information");
@@ -167,80 +174,101 @@ public class FTAdmin {
 				.setSSLSocketFactory(sslsf).setMaxConnPerRoute(100)
 				.setMaxConnTotal(100).build();
 
-		String fileTransferURI = "https://" + host + ":" + port
-				+ "/IBMJMXConnectorREST/file/";
+		return httpclient;
+	}
 
-		// get MBean for FTController and execute transfer
-		System.setProperty("javax.net.ssl.trustStore", truststorePath);
-		System.setProperty("javax.net.ssl.trustStorePassword", truststorePass);
+	private static JMXConnector setupJMXConnector(Config config) {
+		System.setProperty("javax.net.ssl.trustStore",
+				config.getTruststorePath());
+		System.setProperty("javax.net.ssl.trustStorePassword",
+				config.getTruststorePass());
 
 		HashMap<String, Object> environment = new HashMap<String, Object>();
 		environment.put("jmx.remote.protocol.provider.pkgs",
 				"com.ibm.ws.jmx.connector.client");
-		environment.put(JMXConnector.CREDENTIALS, new String[] { username,
-				password });
+		environment.put(JMXConnector.CREDENTIALS,
+				new String[] { config.getUsername(), config.getPassword() });
 		environment.put(ConnectorSettings.READ_TIMEOUT, 0);
 
+		JMXConnector connector = null;
 		try {
-			JMXServiceURL url = new JMXServiceURL("service:jmx:rest://" + host
-					+ ":" + port + "/IBMJMXConnectorREST");
-			JMXConnector connector = JMXConnectorFactory.newJMXConnector(url,
+			JMXServiceURL url = new JMXServiceURL("service:jmx:rest://"
+					+ config.getHost() + ":" + config.getPort()
+					+ "/IBMJMXConnectorREST");
+			connector = JMXConnectorFactory.newJMXConnector(url,
 					environment);
 			connector.connect();
-			MBeanServerConnection mbs = connector.getMBeanServerConnection();
+		} catch (IOException e) {
+			System.out.println("JMX Connector broken");
+			System.exit(1);
+		}
 
+		return connector;
+	}
+
+	private static void uploadPackage(Config config, File packageFile) {
+		String fileTransferURI = "https://" + config.getHost() + ":"
+				+ config.getPort() + "/IBMJMXConnectorREST/file/";
+		long startTime = System.currentTimeMillis();
+		System.out.println("Uploading package to Controller...");
+
+		try (CloseableHttpClient httpclient = setupHttpClient(config)) {
+			HttpPost post = new HttpPost(fileTransferURI
+					+ URLEncoder.encode(config.getContrPackageDir() + "/"
+							+ packageFile.getName(), "utf-8"));
+			post.setEntity(new FileEntity(packageFile));
+			httpclient.execute(post);
+		} catch (IOException e) {
+			System.out.println("invalid host or port, or server not running");
+			System.exit(1);
+		}
+		long endTime = System.currentTimeMillis();
+		System.out.println("Package upload finished in "
+				+ ((double) (endTime - startTime) / 1000) + " seconds!");
+	}
+
+	private static void executeTransfer(Config config, File packageFile,
+			String destDir, String destHosts, Boolean onController) {
+
+		try (JMXConnector connector = setupJMXConnector(config)) {
+			MBeanServerConnection mbs = connector.getMBeanServerConnection();
 			ObjectName FTControllerMBean = new ObjectName(
 					"net.wasdev:feature=FastTransferFeature,type=FastTransfer,name=FastTransfer");
 
 			if (mbs.isRegistered(FTControllerMBean)) {
 				if (!onController) {
-					if (clearCTD) {
-						// clean out torrent directory on controller
-						System.out.println("Cleaning torrent directory...");
+					if (config.getClearCPD()) {
+						System.out.println("Cleaning package directory...");
 						mbs.invoke(FTControllerMBean, "cleanPackageDir",
-								new Object[] { contrPackageDir },
+								new Object[] { config.getContrPackageDir() },
 								new String[] { "java.lang.String" });
 					}
-					// upload package to controller
-					long startTime = System.currentTimeMillis();
-					System.out.println("Uploading package to Controller...");
-					HttpPost post = new HttpPost(fileTransferURI
-							+ URLEncoder.encode(contrPackageDir + "/" + srcName,
-									"utf-8"));
-
-					post.setEntity(new FileEntity(srcFile));
-					try {
-						httpclient.execute(post);
-						httpclient.close();
-					} catch (IOException e) {
-						System.out
-								.println("invalid host or port, or server not running");
-						System.exit(1);
-					}
-					long endTime = System.currentTimeMillis();
-					System.out.println("Package upload finished in "
-							+ ((double) (endTime - startTime) / 1000)
-							+ " seconds!");
+					uploadPackage(config, packageFile);
 				} else {
 					System.out.println("Skipping upload of file...");
 				}
-				// start torrent process
+
 				System.out.println("Starting fast transfer process...");
-				long startTime2 = System.currentTimeMillis();
-				int numCompl = (int) mbs.invoke(FTControllerMBean,
-						"transferPackage", new Object[] { srcName, destDir,
-								hostnames, username, password, truststorePass,
-								host, port, contrPackageDir }, new String[] {
-								"java.lang.String", "java.lang.String",
-								"java.lang.String", "java.lang.String",
-								"java.lang.String", "java.lang.String",
-								"java.lang.String", "java.lang.String",
-								"java.lang.String" });
-				long endTime2 = System.currentTimeMillis();
+				long startTime = System.currentTimeMillis();
+				int numCompl = (int) mbs
+						.invoke(FTControllerMBean,
+								"transferPackage",
+								new Object[] { packageFile.getName(), destDir,
+										destHosts, config.getUsername(),
+										config.getPassword(),
+										config.getTruststorePass(),
+										config.getHost(), config.getPort(),
+										config.getContrPackageDir() },
+								new String[] { "java.lang.String",
+										"java.lang.String", "java.lang.String",
+										"java.lang.String", "java.lang.String",
+										"java.lang.String", "java.lang.String",
+										"java.lang.String", "java.lang.String" });
+				long endTime = System.currentTimeMillis();
 				System.out.println("Transfer finished successfully for "
-						+ numCompl + " out of " + hostnames.split(",").length
+						+ numCompl + " out of " + destHosts.split(",").length
 						+ " hosts in "
-						+ ((double) (endTime2 - startTime2) / 1000)
+						+ ((double) (endTime - startTime) / 1000)
 						+ " seconds!");
 
 			} else {

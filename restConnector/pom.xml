@@ -2,8 +2,8 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>restConnector</groupId>
-  <artifactId>restConnector</artifactId>
+  <groupId>com.ibm.websphere.jmx.connector.rest</groupId>
+  <artifactId>com.ibm.websphere.jmx.connector.rest</artifactId>
   <packaging>pom</packaging>
   <version>1.0</version>
   <description>POM was created from install:install-file</description>
@@ -21,12 +21,12 @@
               <goal>install-file</goal>
             </goals>
             <configuration>
-              <groupId>restConnector</groupId>
-              <artifactId>restConnector</artifactId>
+              <groupId>com.ibm.websphere.jmx.connector.rest</groupId>
+              <artifactId>com.ibm.websphere.jmx.connector.rest</artifactId>
               <version>1.0</version>
               <packaging>jar</packaging>
               <generatePom>true</generatePom>
-              <file>lib/restConnector.jar</file>
+              <file>lib/com.ibm.websphere.jmx.connector.rest.jar</file>
             </configuration>
           </execution>
         </executions>

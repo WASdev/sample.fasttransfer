@@ -1,12 +1,12 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1438874900804
+Bnd-LastModified: 1439228639517
 Build-Jdk: 1.7.0
 Built-By: zhengjo
 Bundle-ClassPath: .,ttorrent-1.4.jar,commons-codec-1.8.jar,commons-io-2.
  4.jar,simple-4.1.21.jar,slf4j-log4j12-1.6.4.jar,slf4j-api-1.6.4.jar,log
  4j-1.2.16.jar,jargs-1.0.jar,httpclient-4.5.jar,httpcore-4.4.1.jar,commo
  ns-logging-1.2.jar,org.osgi.core-5.0.0.jar,org.osgi.compendium-5.0.0.ja
- r,restConnector-1.0.jar
+ r,com.ibm.websphere.jmx.connector.rest-1.0.jar
 Bundle-ManifestVersion: 2
 Bundle-Name: net.wasdev.fasttransfer
 Bundle-SymbolicName: net.wasdev.fasttransfer
@@ -25,8 +25,9 @@ Embedded-Artifacts: ttorrent-1.4.jar;g="com.turn";a="ttorrent";v="1.4",c
  g.apache.httpcomponents";a="httpcore";v="4.4.1",commons-logging-1.2.jar
  ;g="commons-logging";a="commons-logging";v="1.2",org.osgi.core-5.0.0.ja
  r;g="org.osgi";a="org.osgi.core";v="5.0.0",org.osgi.compendium-5.0.0.ja
- r;g="org.osgi";a="org.osgi.compendium";v="5.0.0",restConnector-1.0.jar;
- g="restConnector";a="restConnector";v="1.0"
+ r;g="org.osgi";a="org.osgi.compendium";v="5.0.0",com.ibm.websphere.jmx.
+ connector.rest-1.0.jar;g="com.ibm.websphere.jmx.connector.rest";a="com.
+ ibm.websphere.jmx.connector.rest";v="1.0"
 Export-Package: net.wasdev.fasttransfer;version="1.0.0"
 Import-Package: com.ibm.uvm.tools;resolution:=optional,com.sun.jdmk.comm
  ;resolution:=optional,javax.crypto;resolution:=optional,javax.crypto.sp
