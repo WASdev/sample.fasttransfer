@@ -36,7 +36,7 @@ public class FTClient {
 			while (!client.getTorrent().isInitialized()) {
 				Thread.sleep(1000);
 			}
-			Thread.sleep(5000);
+			Thread.sleep(11000);
 
 			while (true) {
 				// check every second
