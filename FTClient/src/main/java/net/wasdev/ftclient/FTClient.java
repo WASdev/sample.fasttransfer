@@ -17,7 +17,7 @@ public class FTClient {
 
 	private static Client client = null;
 	private static File torrentFile = null;
-	
+
 	public static void main(String[] args) {
 		torrentFile = new File(args[0]);
 		File destDir = new File(args[1]);
@@ -62,7 +62,7 @@ public class FTClient {
 		} catch (Exception e) {
 			e.printStackTrace();
 			cleanup();
-		} 
+		}
 	}
 
 	// deletes the torrentFile and this jar
@@ -70,7 +70,7 @@ public class FTClient {
 		try {
 			client.stop();
 			torrentFile.delete();
-			//write bash file that deletes the jar and then itself
+			// write bash file that deletes the jar and then itself
 			String jarpath = FTClient.class.getProtectionDomain()
 					.getCodeSource().getLocation().getPath();
 			String decodedJarPath = URLDecoder.decode(jarpath, "UTF-8");

@@ -45,7 +45,7 @@ public class FTAdmin {
 		if (args.length != 5) {
 			printHelp();
 			System.exit(0);
-		}	
+		}
 		Config config = readConfig(new File(args[0]));
 		// get the package to transfer and where to transfer to
 		File packageFile = new File(args[1]);
@@ -195,8 +195,7 @@ public class FTAdmin {
 			JMXServiceURL url = new JMXServiceURL("service:jmx:rest://"
 					+ config.getHost() + ":" + config.getPort()
 					+ "/IBMJMXConnectorREST");
-			connector = JMXConnectorFactory.newJMXConnector(url,
-					environment);
+			connector = JMXConnectorFactory.newJMXConnector(url, environment);
 			connector.connect();
 		} catch (IOException e) {
 			System.out.println("JMX Connector broken");
@@ -265,11 +264,12 @@ public class FTAdmin {
 										"java.lang.String", "java.lang.String",
 										"java.lang.String", "java.lang.String" });
 				long endTime = System.currentTimeMillis();
-				System.out.println("Transfer finished successfully for "
-						+ numCompl + " out of " + destHosts.split(",").length
-						+ " hosts in "
-						+ ((double) (endTime - startTime) / 1000)
-						+ " seconds!");
+				System.out
+						.println("Transfer finished successfully for "
+								+ numCompl + " out of "
+								+ destHosts.split(",").length + " hosts in "
+								+ ((double) (endTime - startTime) / 1000)
+								+ " seconds!");
 
 			} else {
 				System.out.println("FastTransfer feature not up");

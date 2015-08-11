@@ -1,14 +1,20 @@
 package net.wasdev.fasttransfer;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -40,7 +46,6 @@ import com.turn.ttorrent.tracker.Tracker;
 		+ FTControllerMBean.OBJECT_NAME })
 public class FTController implements FTControllerMBean {
 
-	private Object lock = new Object();
 	private boolean trackerStarted = false;
 	private Tracker tracker = null;
 	private int trackerport = 0;
@@ -53,26 +58,11 @@ public class FTController implements FTControllerMBean {
 		Torrent torrent = null;
 
 		try {
-			synchronized (lock) {
-				if (!trackerStarted) {
-					for (trackerport = 6961; trackerport <= 6969; trackerport++) {
-						InetSocketAddress tryAddress = new InetSocketAddress(
-								trackerport);
-						try {
-							// tests if port is in use. If not, an exception
-							// will be thrown
-							new Socket(tryAddress.getAddress(),
-									tryAddress.getPort()).close();
-						} catch (IOException ioe) {
-							tracker = new Tracker(tryAddress);
-							break;
-						}
-					}
-					tracker.start();
-					trackerStarted = true;
-				}
+			if (!trackerStarted) {
+				startTracker();
 			}
 
+			// create torrent
 			File srcFile = new File(contrPackageDir + "/" + srcName);
 			torrent = Torrent.create(srcFile, new URI("http://" + host + ":"
 					+ trackerport + "/announce"), "createdByUser");
@@ -82,6 +72,7 @@ public class FTController implements FTControllerMBean {
 			fos.close();
 			tracker.announce(new TrackedTorrent(torrent));
 
+			// start initial seed
 			initialSeed = new Client(InetAddress.getLocalHost(),
 					new SharedTorrent(torrent, new File(contrPackageDir), true));
 			initialSeed.share();
@@ -89,35 +80,92 @@ public class FTController implements FTControllerMBean {
 				Thread.sleep(1000);
 			}
 
-			// setup HTTPClient
-			CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-			credentialsProvider.setCredentials(AuthScope.ANY,
-					new UsernamePasswordCredentials(username, password));
-			SSLContext sslContext = null;
+			// zip up FTClient.jar and .torrent into one file
+			createZip(srcName, contrPackageDir, torrentFile);
 
+			// push zip to targets and start transfer
+			startTransfer(username, password, contrPackageDir, truststorePass,
+					host, port, srcName, destDir, hosts);
+
+			waitUntilTransferDone(initialSeed, hosts);
+			int numpeers = numDistinctPeers(initialSeed.getPeers(), true);
+			return numpeers;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			int numpeers = numDistinctPeers(initialSeed.getPeers(), true);
+			return numpeers;
+		} finally {
+			initialSeed.stop();
+			// remove torrent after 20 seconds
+			tracker.remove(torrent, 20000);
+		}
+	}
+
+	private synchronized void startTracker() {
+		for (trackerport = 6961; trackerport <= 6969; trackerport++) {
+			InetSocketAddress tryAddress = new InetSocketAddress(trackerport);
+			try {
+				// tests if port is in use. If not, an exception
+				// will be thrown
+				new Socket(tryAddress.getAddress(), tryAddress.getPort())
+						.close();
+			} catch (IOException ioe) {
+				try {
+					tracker = new Tracker(tryAddress);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				break;
+			}
+		}
+		tracker.start();
+		trackerStarted = true;
+
+	}
+
+	private CloseableHttpClient setupHttpClient(String username,
+			String password, String contrPackageDir, String truststorePass) {
+		// setup HTTPClient
+		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		credentialsProvider.setCredentials(AuthScope.ANY,
+				new UsernamePasswordCredentials(username, password));
+		SSLContext sslContext = null;
+
+		try {
 			sslContext = SSLContexts
 					.custom()
 					.loadTrustMaterial(
 							new File(contrPackageDir + "-config/trust.jks"),
 							truststorePass.toCharArray()).build();
+		} catch (KeyManagementException | NoSuchAlgorithmException
+				| KeyStoreException | CertificateException | IOException e) {
+			e.printStackTrace();
+		}
 
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					sslContext);
-			CloseableHttpClient httpclient = HttpClientBuilder.create()
-					.setDefaultCredentialsProvider(credentialsProvider)
-					.setSSLSocketFactory(sslsf).build();
+		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+				sslContext);
+		CloseableHttpClient httpclient = HttpClientBuilder.create()
+				.setDefaultCredentialsProvider(credentialsProvider)
+				.setSSLSocketFactory(sslsf).build();
 
-			// zip up FTClient.jar and .torrent into one file
-			byte[] buffer = new byte[1024];
-			String pkgName = srcName + "package";
-			String tcName = srcName + "FTClient.jar";
-			FileOutputStream zipfos = new FileOutputStream(contrPackageDir + "/"
-					+ pkgName + ".zip");
+		return httpclient;
+	}
+
+	private void createZip(String srcName, String contrPackageDir,
+			File torrentFile) {
+
+		byte[] buffer = new byte[1024];
+		String pkgName = srcName + "package";
+		String ftcName = srcName + "FTClient.jar";
+		try {
+			FileOutputStream zipfos = new FileOutputStream(contrPackageDir
+					+ "/" + pkgName + ".zip");
 			ZipOutputStream zos = new ZipOutputStream(zipfos);
-			ZipEntry ze = new ZipEntry(tcName);
+			ZipEntry ze = new ZipEntry(ftcName);
 			zos.putNextEntry(ze);
-			FileInputStream in = new FileInputStream(contrPackageDir + "-config"
-					+ "/FTClient.jar");
+			FileInputStream in = new FileInputStream(contrPackageDir
+					+ "-config" + "/FTClient.jar");
 
 			int len;
 			while ((len = in.read(buffer)) > 0) {
@@ -138,13 +186,25 @@ public class FTController implements FTControllerMBean {
 			in2.close();
 			zos.closeEntry();
 			zos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-			// push zip to targets
-			String destZipPath = destDir + "/" + pkgName;
+	private void startTransfer(String username, String password,
+			String contrPackageDir, String truststorePass, String host,
+			String port, String srcName, String destDir, String hosts) {
 
-			String fileTransferURI = "https://" + host + ":" + port
-					+ "/IBMJMXConnectorREST/file/";
+		String pkgName = srcName + "package";
+		String ftcName = srcName + "FTClient.jar";
 
+		String destZipPath = destDir + "/" + pkgName;
+
+		String fileTransferURI = "https://" + host + ":" + port
+				+ "/IBMJMXConnectorREST/file/";
+
+		try (CloseableHttpClient httpclient = setupHttpClient(username,
+				password, contrPackageDir, truststorePass)) {
 			HttpPost zipPost = new HttpPost(fileTransferURI
 					+ URLEncoder.encode(destZipPath, "utf-8")
 					+ "?expandOnCompletion=true");
@@ -153,12 +213,12 @@ public class FTController implements FTControllerMBean {
 					+ pkgName + ".zip")));
 			zipPost.addHeader("com.ibm.websphere.collective.hostNames", hosts);
 
-			String destTCPath = destDir + "/" + tcName;
+			String destFTCPath = destDir + "/" + ftcName;
 			String destTorrPath = destDir + "/" + srcName + ".torrent";
 			String postCommand1 = "mv " + destDir + "/" + pkgName + "/"
-					+ tcName + " " + destDir + "/" + pkgName + "/" + srcName
+					+ ftcName + " " + destDir + "/" + pkgName + "/" + srcName
 					+ ".torrent " + destDir;
-			String postCommand2 = "java -jar " + destTCPath + " "
+			String postCommand2 = "java -jar " + destFTCPath + " "
 					+ destTorrPath + " " + destDir + " &";
 			String postCommand3 = "rmdir " + destDir + "/" + pkgName;
 			zipPost.addHeader(
@@ -168,51 +228,81 @@ public class FTController implements FTControllerMBean {
 			System.out.println("Pushing out .torrent files");
 			httpclient.execute(zipPost);
 			System.out.println("Done pushing .torrent files");
-			httpclient.close();
-
-			long startTorrentTime = System.currentTimeMillis();
-
-			// wait up to 5 minutes for all clients to connect
-			while (numDistinctPeers(initialSeed.getPeers()) < hosts.split(",").length + 1
-					&& (System.currentTimeMillis() - startTorrentTime) <= 300000) {
-				Thread.sleep(1000);
-			}
-			System.out.println("All Clients Connected!");
-
-			boolean done = false;
-			while (!done) {
-				// check every second
-				Thread.sleep(1000);
-				done = true;
-				Set<SharingPeer> peers = initialSeed.getPeers();
-				numDistinctPeers(peers);
-				for (SharingPeer p : peers) {
-					if (p.isConnected() && !p.isSeed()) {
-						done = false;
-						break;
-					}
-				}
-			}
-			int numpeers = numDistinctPeers(initialSeed.getPeers()) - 1;
-			return numpeers;
-
-		} catch (Exception e) {
+		} catch (IOException e) {
 			e.printStackTrace();
-			int numpeers = numDistinctPeers(initialSeed.getPeers()) - 1;
-			return numpeers;
-		} finally {
-			initialSeed.stop();
-			// remove torrent after 20 seconds
-			tracker.remove(torrent, 20000);
 		}
 	}
 
-	private int numDistinctPeers(Set<SharingPeer> peers) {
-		HashSet<String> hs = new HashSet<String>();
-		for (SharingPeer p : peers) {
-			hs.add(p.getIp());
+	private void waitUntilTransferDone(Client initialSeed, String hosts) {
+		long startTransferTime = System.currentTimeMillis();
+
+		// wait up to 5 minutes for all clients to connect
+		while (numDistinctPeers(initialSeed.getPeers(), false) < hosts
+				.split(",").length 
+				&& (System.currentTimeMillis() - startTransferTime) <= 300000) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
-		return hs.size();
+		System.out.println("All Clients Connected!");
+
+		boolean done = false;
+		while (!done) {
+			// check every second
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			done = true;
+			Set<SharingPeer> peers = initialSeed.getPeers();
+			for (SharingPeer p : peers) {
+				if (p.isConnected() && !p.isSeed()) {
+					done = false;
+					break;
+				}
+			}
+		}
+	}
+
+	private int numDistinctPeers(Set<SharingPeer> peers, Boolean reqDone) {
+		int count = 0;
+		HashSet<String> hs = new HashSet<String>();
+		// //debugging
+		// try {
+		// FileWriter fw = new FileWriter(new
+		// File("/home/ibmadmin/torrent/peerStatus"), true);
+		// BufferedWriter bw = new BufferedWriter(fw);
+		// for (SharingPeer p : peers) {
+		// bw.write(p.getHostIdentifier() + "\t" + p.isConnected() + "\t" +
+		// p.isSeed() + "\t" + p.isDownloading() + "\n");
+		// }
+		// bw.write("\n\n");
+		// bw.flush();
+		// bw.close();
+		// } catch (IOException e) {
+		// e.printStackTrace();
+		// }
+		if (reqDone) {
+			for (SharingPeer p : peers) {
+				if (!hs.contains(p.getIp()) && p.isSeed()) {
+					count++;
+					hs.add(p.getIp());
+				}
+			}
+			//self will never be included
+			return count;
+		} else {
+			for (SharingPeer p : peers) {
+				if (!hs.contains(p.getIp())) {
+					count++;
+				}
+			}
+			//subtract one to exclude self
+			return count - 1;
+		}
 	}
 
 	public void cleanPackageDir(String contrPackageDir) {
