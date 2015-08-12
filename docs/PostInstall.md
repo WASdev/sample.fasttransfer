@@ -6,7 +6,7 @@ In order to use the feature we need to set up a few things.
 
 First, we need to edit the server.xml for the controller server. To enable the feature add
 ```xml
-<feature>usr:com.zheng.torrentfeature</feature>
+<feature>usr:net.wasdev.fasttransfer</feature>
 ``` 
 under <featureManager>. To allow the controller to run commands on the hosts add 
 ```xml
