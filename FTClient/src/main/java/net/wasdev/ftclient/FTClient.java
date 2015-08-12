@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.URLDecoder;
+import java.util.HashSet;
 import java.util.Set;
 
 import com.turn.ttorrent.client.Client;
@@ -15,12 +16,14 @@ import com.turn.ttorrent.client.peer.SharingPeer;
 
 public class FTClient {
 
+	// client for downloading and uploading torrent
 	private static Client client = null;
 	private static File torrentFile = null;
 
 	public static void main(String[] args) {
 		torrentFile = new File(args[0]);
 		File destDir = new File(args[1]);
+		int numhosts = Integer.parseInt(args[2]);
 
 		try {
 			client = new Client(InetAddress.getLocalHost(),
@@ -30,19 +33,23 @@ public class FTClient {
 					.get(0).getHost();
 			String trackerip = InetAddress.getByName(trackerhost)
 					.getHostAddress();
+			// start downloading and uploading
 			client.share();
 
-			// done when seed on tracker host is disconnected
-			while (!client.getTorrent().isInitialized()) {
+			long timeStart = System.currentTimeMillis();
+
+			while (!client.getTorrent().isInitialized()
+					|| (numDistinctPeers(client.getPeers()) < numhosts && System
+							.currentTimeMillis() - timeStart <= numhosts * 10000)) {
 				Thread.sleep(1000);
 			}
-			Thread.sleep(11000);
 
+			// done when client on tracker host is disconnected
 			while (true) {
 				// check every second
 				Thread.sleep(1000);
 				Set<SharingPeer> peers = client.getPeers();
-				if (peers.isEmpty() || peers == null) {
+				if ((peers.isEmpty() || peers == null)) {
 					cleanup();
 				}
 				boolean initSeedExists = false;
@@ -86,5 +93,13 @@ public class FTClient {
 			e.printStackTrace();
 		}
 		System.exit(0);
+	}
+
+	private static int numDistinctPeers(Set<SharingPeer> peers) {
+		HashSet<String> hs = new HashSet<String>();
+		for (SharingPeer p : peers) {
+			hs.add(p.getIp());
+		}
+		return hs.size();
 	}
 }

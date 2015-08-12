@@ -1,10 +1,8 @@
 package net.wasdev.fasttransfer;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -15,6 +13,9 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -50,9 +51,10 @@ public class FTController implements FTControllerMBean {
 	private Tracker tracker = null;
 	private int trackerport = 0;
 
-	public int transferPackage(String srcName, String destDir, String hosts,
-			String username, String password, String truststorePass,
-			String host, String port, String contrPackageDir) {
+	public HashSet<String> transferPackage(String srcName, String destDir,
+			String hosts, String username, String password,
+			String truststorePass, String host, String port,
+			String contrPackageDir) {
 
 		Client initialSeed = null;
 		Torrent torrent = null;
@@ -88,13 +90,11 @@ public class FTController implements FTControllerMBean {
 					host, port, srcName, destDir, hosts);
 
 			waitUntilTransferDone(initialSeed, hosts);
-			int numpeers = numDistinctPeers(initialSeed.getPeers(), true);
-			return numpeers;
+			return getDonePeers(initialSeed.getPeers());
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			int numpeers = numDistinctPeers(initialSeed.getPeers(), true);
-			return numpeers;
+			return getDonePeers(initialSeed.getPeers());
 		} finally {
 			initialSeed.stop();
 			// remove torrent after 20 seconds
@@ -124,6 +124,7 @@ public class FTController implements FTControllerMBean {
 
 	}
 
+	// used to call REST API
 	private CloseableHttpClient setupHttpClient(String username,
 			String password, String contrPackageDir, String truststorePass) {
 		// setup HTTPClient
@@ -191,6 +192,8 @@ public class FTController implements FTControllerMBean {
 		}
 	}
 
+	// sends zip files to each host. After the upload, the files will unzip and
+	// the FTClient jar will download the package
 	private void startTransfer(String username, String password,
 			String contrPackageDir, String truststorePass, String host,
 			String port, String srcName, String destDir, String hosts) {
@@ -215,11 +218,17 @@ public class FTController implements FTControllerMBean {
 
 			String destFTCPath = destDir + "/" + ftcName;
 			String destTorrPath = destDir + "/" + srcName + ".torrent";
+			// extract unzipped files to desired location
 			String postCommand1 = "mv " + destDir + "/" + pkgName + "/"
 					+ ftcName + " " + destDir + "/" + pkgName + "/" + srcName
 					+ ".torrent " + destDir;
+			// start FTClient.jar and log it
+			DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+			Date date = new Date();
 			String postCommand2 = "java -jar " + destFTCPath + " "
-					+ destTorrPath + " " + destDir + " &";
+					+ destTorrPath + " " + destDir + " "  + hosts.split(",").length + " > " + srcName + "_"
+					+ dateFormat.format(date) + ".log &";
+			// remove unecessary files
 			String postCommand3 = "rmdir " + destDir + "/" + pkgName;
 			zipPost.addHeader(
 					"com.ibm.websphere.jmx.connector.rest.postTransferAction",
@@ -236,10 +245,10 @@ public class FTController implements FTControllerMBean {
 	private void waitUntilTransferDone(Client initialSeed, String hosts) {
 		long startTransferTime = System.currentTimeMillis();
 
-		// wait up to 5 minutes for all clients to connect
-		while (numDistinctPeers(initialSeed.getPeers(), false) < hosts
-				.split(",").length 
-				&& (System.currentTimeMillis() - startTransferTime) <= 300000) {
+		// wait up to num hosts * 10s for all clients to connect
+		int numhosts = hosts.split(",").length;
+		while (numDistinctPeers(initialSeed.getPeers()) < numhosts
+				&& (System.currentTimeMillis() - startTransferTime) <= numhosts * 10000) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
@@ -267,42 +276,22 @@ public class FTController implements FTControllerMBean {
 		}
 	}
 
-	private int numDistinctPeers(Set<SharingPeer> peers, Boolean reqDone) {
-		int count = 0;
+	private int numDistinctPeers(Set<SharingPeer> peers) {
 		HashSet<String> hs = new HashSet<String>();
-		// //debugging
-		// try {
-		// FileWriter fw = new FileWriter(new
-		// File("/home/ibmadmin/torrent/peerStatus"), true);
-		// BufferedWriter bw = new BufferedWriter(fw);
-		// for (SharingPeer p : peers) {
-		// bw.write(p.getHostIdentifier() + "\t" + p.isConnected() + "\t" +
-		// p.isSeed() + "\t" + p.isDownloading() + "\n");
-		// }
-		// bw.write("\n\n");
-		// bw.flush();
-		// bw.close();
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
-		if (reqDone) {
-			for (SharingPeer p : peers) {
-				if (!hs.contains(p.getIp()) && p.isSeed()) {
-					count++;
-					hs.add(p.getIp());
-				}
-			}
-			//self will never be included
-			return count;
-		} else {
-			for (SharingPeer p : peers) {
-				if (!hs.contains(p.getIp())) {
-					count++;
-				}
-			}
-			//subtract one to exclude self
-			return count - 1;
+		for (SharingPeer p : peers) {
+			hs.add(p.getIp());
 		}
+		return hs.size();
+	}
+
+	private HashSet<String> getDonePeers(Set<SharingPeer> peers) {
+		HashSet<String> hs = new HashSet<String>();
+		for (SharingPeer p : peers) {
+			if (!hs.contains(p.getIp()) && p.isSeed()) {
+				hs.add(p.getIp());
+			}
+		}
+		return hs;
 	}
 
 	public void cleanPackageDir(String contrPackageDir) {

@@ -1,9 +1,11 @@
 package net.wasdev.ftadmin;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -11,7 +13,11 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanException;
@@ -42,7 +48,7 @@ public class FTAdmin {
 		// for logging
 		System.setProperty("org.apache.commons.logging.Log",
 				"org.apache.commons.logging.impl.Jdk14Logger");
-		if (args.length != 5) {
+		if (args.length != 6) {
 			printHelp();
 			System.exit(0);
 		}
@@ -53,13 +59,17 @@ public class FTAdmin {
 		String destHosts = readHosts(new File(args[3]));
 		// is the package already on the controller?
 		Boolean onController = readOnController(args[4]);
-		executeTransfer(config, packageFile, destDir, destHosts, onController);
+		// logs directory
+		String logsDir = args[5];
+		HashSet<String> complHosts = executeTransfer(config, packageFile,
+				destDir, destHosts, onController);
+		complHostsReport(complHosts, packageFile.getName(), logsDir);
 	}
 
 	private static void printHelp() {
 		System.out
-				.println("Takes five arguments: config_file path_to_package dest_dir hosts onController\n");
-		System.out.println("dest_dir should not end with a slash\n");
+				.println("Takes five arguments: config_file path_to_package dest_dir hosts onController logs_dir\n");
+		System.out.println("dest_dir and logs_dir should not end with a slash\n");
 		System.out
 				.println("Config_file should be formatted as follows:\n"
 						+ "quick start security username\n"
@@ -74,6 +84,7 @@ public class FTAdmin {
 				.println("hosts should be a list of hostnames separated by newlines\n");
 		System.out
 				.println("onController indicates whether the package is already on the Controller. Its value is either true or false. If it is true, path_to_package can just be the name of the file.\n");
+		System.out.println("logs_dir is the directory where information about the transfer will be stored");
 	}
 
 	private static Config readConfig(File configFile) {
@@ -149,6 +160,7 @@ public class FTAdmin {
 		return onController;
 	}
 
+	// sets up httpclient to call server's REST API via SSL
 	private static CloseableHttpClient setupHttpClient(Config config) {
 		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 		credentialsProvider.setCredentials(
@@ -177,6 +189,7 @@ public class FTAdmin {
 		return httpclient;
 	}
 
+	// JMX connector needed to call server MBean
 	private static JMXConnector setupJMXConnector(Config config) {
 		System.setProperty("javax.net.ssl.trustStore",
 				config.getTruststorePath());
@@ -226,8 +239,9 @@ public class FTAdmin {
 				+ ((double) (endTime - startTime) / 1000) + " seconds!");
 	}
 
-	private static void executeTransfer(Config config, File packageFile,
-			String destDir, String destHosts, Boolean onController) {
+	private static HashSet<String> executeTransfer(Config config,
+			File packageFile, String destDir, String destHosts,
+			Boolean onController) {
 
 		try (JMXConnector connector = setupJMXConnector(config)) {
 			MBeanServerConnection mbs = connector.getMBeanServerConnection();
@@ -249,7 +263,10 @@ public class FTAdmin {
 
 				System.out.println("Starting fast transfer process...");
 				long startTime = System.currentTimeMillis();
-				int numCompl = (int) mbs
+				// returns the ips of the host that successfully received the
+				// file
+				@SuppressWarnings("unchecked")
+				HashSet<String> complHosts = (HashSet<String>) mbs
 						.invoke(FTControllerMBean,
 								"transferPackage",
 								new Object[] { packageFile.getName(), destDir,
@@ -266,19 +283,37 @@ public class FTAdmin {
 				long endTime = System.currentTimeMillis();
 				System.out
 						.println("Transfer finished successfully for "
-								+ numCompl + " out of "
+								+ complHosts.size() + " out of "
 								+ destHosts.split(",").length + " hosts in "
 								+ ((double) (endTime - startTime) / 1000)
 								+ " seconds!");
+				return complHosts;
 
 			} else {
 				System.out.println("FastTransfer feature not up");
 				System.exit(1);
+				return null;
 			}
 		} catch (MalformedObjectNameException | InstanceNotFoundException
 				| MBeanException | ReflectionException | IOException e) {
 			e.printStackTrace();
 			System.exit(1);
+			return null;
+		}
+	}
+
+	private static void complHostsReport(HashSet<String> complHosts,
+			String pkgname, String logDir) {
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+		Date date = new Date();
+		File outfile = new File(logDir + "/" + pkgname + "_CompletedHosts_"
+				+ dateFormat.format(date));
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(outfile))) {
+			for (String ip : complHosts) {
+				bw.write(ip + "\n");
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
