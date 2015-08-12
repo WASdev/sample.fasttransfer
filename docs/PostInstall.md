@@ -1,14 +1,16 @@
 ## Post Installation Setup##
 
-In order to use the feature we need to set up a few things.
+In order to use the feature we need to set up a few things on the controller host. 
 
 ### Server.xml
 
 First, we need to edit the server.xml for the controller server. To enable the feature add
 ```xml
-<feature>usr:net.wasdev.fasttransfer</feature>
+<featureManager> 
+  <feature>usr:net.wasdev.fasttransfer</feature>
+</featureManager>
 ``` 
-under <featureManager>. To allow the controller to run commands on the hosts add 
+To allow the controller to run commands on the hosts add 
 ```xml
 <hostAccess enableCustomActions="true" useSftp="false"/>
 ```

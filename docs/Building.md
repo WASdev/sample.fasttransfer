@@ -1,6 +1,6 @@
 ## Building with Maven
 
-This sample can be built using [Apache Maven](http://maven.apache.org/).
+This sample can be built using [Apache Maven](http://maven.apache.org/). Please use the latest (maven 3)!
 
 ```bash
 $ mvn package
