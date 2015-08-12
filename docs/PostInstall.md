@@ -27,4 +27,4 @@ Now, create two folders following the pattern x and x-config. For example, packa
 
 
 ### Other
-Make sure that /etc/hosts doesn't map the localhost address to the hostname (or if it does, make sure that it also maps the actual ip to the hostname). We need to broadcast an actual ip. 
+Make sure that /etc/hosts doesn't map the localhost address to the hostname. We need to send an actual IP address in the transfer request to the target hosts. Make sure that this is also the case on the target hosts so they can connect to each other. 
