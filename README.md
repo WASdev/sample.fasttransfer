@@ -8,7 +8,8 @@ This sample introduces a new feature that solves the aforementioned problems. It
 
 * [Building with Maven](docs/Building.md)
 * [Getting WAS Liberty](docs/Liberty.md)
-* [Setting up a collective](docs/Collective.md)
-* [Installing the user feature](docs/Install.md)
+* [Setting Up a Collective](docs/Collective.md)
+* [Installing the User Feature](docs/Install.md)
 * [Post Install](docs/PostInstall.md)
-* [Using the feature](docs/Using.md)
+* [Using the Feature](docs/Using.md)
+* [Understanding the Code](docs/Code.md)

@@ -1,0 +1,17 @@
+## Understanding the Code
+
+### Project Structure
+The directory structure of the project follows that of a typical Maven project, as outlined [here](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html). It may also be helpful to learn more about Maven in general. A helpful quickstart can be found [here](https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html).
+
+### Bittorernt Overview
+In order to understand how the code works, one must first take a look at the bittorrent protocol. Assume there is a file we want to share. In bittorrent terms, a client is a computer that wishes to upload the file to other clients, or to download the file from other clients. A client that is uploading is called a seeder and a client that is downloading is called a leecher. A tracker is a computer that keeps track of all the clients. It notes which clients have which pieces of the file and orchestrates how the pieces are sent between clients. In order for the file to be shared, the tracker creates  a .torrent file containing details about itself (the tracker) and about the file to be shared. The .torrent file is then distributed among clients, who read the information, contact the tracker, and request the file. 
+
+### High Level Overview 
+There are three subprojects in our project: net.wasdev.fasttransfer, FTAdmin, and FTClient. net.wasdev.fasttransfer is the feature that sits on the controller. It creates an MBean for file transfer. When the user wants to transfer a package, the user first moves the package to the controller host (FTAdmin can help with this as well). The user then runs FTAdmin, which calls the MBean to request a transfer. When the MBean receives the request, it creates a .torrent file from the package, and ships the .torrent file alongside the FTClient.jar to each host. After the upload, the target host runs the FTClient.jar and the transfer process starts. 
+
+### More details
+* For the bittorrent protocol we are using the ttorrent library found [here](https://github.com/mpetazzoni/ttorrent). Unfortunately, there are no javadocs so the best way to understand the code is to read through it. The comments are pretty comprehensive.
+* The call to the MBean is made via JMX. Details on creating a JMX connection can be found [here](https://developer.ibm.com/wasdev/docs/article_howto_remotejmx/). Details on making an MBean call once a connection is established can be found on [this page](http://www-01.ibm.com/support/knowledgecenter/was_beta_liberty/com.ibm.websphere.wlp.nd.multiplatform.doc/ae/twlp_admin_mbeans.html), and specifically on [this subtopic](http://www-01.ibm.com/support/knowledgecenter/was_beta_liberty/com.ibm.websphere.wlp.nd.multiplatform.doc/ae/rwlp_mbeans_operation.html). 
+* We use Liberty's REST API to transfer the .torrent and FTClient.jar files. Information on that can be found [here](http://www-01.ibm.com/support/knowledgecenter/SSAW57_8.5.5/com.ibm.websphere.wlp.nd.doc/ae/twlp_collective_file_transfer_multihost.html?cp=SSAW57_8.5.5%2F1-3-11-0-3-2-17-1&lang=en). 
+* The library we use to make REST calls is HttpClient, which is under the Apache HttpComponents project. Information about how to use HttpClient can be found [here](https://hc.apache.org/httpcomponents-client-4.5.x/index.html).
+* The @Component annotation in the net.wasdev.fasttransfer code is part of Declarative Services. The annotation we use automatically registeres the component as an MBean.  
