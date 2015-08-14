@@ -218,21 +218,25 @@ public class FTController implements FTControllerMBean {
 
 			String destFTCPath = destDir + "/" + ftcName;
 			String destTorrPath = destDir + "/" + srcName + ".torrent";
+			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+			Date date = new Date();
+			String logName = srcName + "_"
+					+ dateFormat.format(date) + ".log";
+			
+			//create log
+			String postCommand0 = "touch " + destDir + "/" + logName;
 			// extract unzipped files to desired location
 			String postCommand1 = "mv " + destDir + "/" + pkgName + "/"
 					+ ftcName + " " + destDir + "/" + pkgName + "/" + srcName
 					+ ".torrent " + destDir;
 			// start FTClient.jar and log it
-			DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-			Date date = new Date();
 			String postCommand2 = "java -jar " + destFTCPath + " "
-					+ destTorrPath + " " + destDir + " "  + hosts.split(",").length + " > " + srcName + "_"
-					+ dateFormat.format(date) + ".log &";
+					+ destTorrPath + " " + destDir + " "  + hosts.split(",").length + " > " + logName + " 2>&1 &";
 			// remove unecessary files
 			String postCommand3 = "rmdir " + destDir + "/" + pkgName;
 			zipPost.addHeader(
 					"com.ibm.websphere.jmx.connector.rest.postTransferAction",
-					postCommand1 + "," + postCommand2 + "," + postCommand3);
+					postCommand0 + "," + postCommand1 + "," + postCommand2 + "," + postCommand3);
 
 			System.out.println("Pushing out .torrent files");
 			httpclient.execute(zipPost);
@@ -245,10 +249,10 @@ public class FTController implements FTControllerMBean {
 	private void waitUntilTransferDone(Client initialSeed, String hosts) {
 		long startTransferTime = System.currentTimeMillis();
 
-		// wait up to num hosts * 10s for all clients to connect
+		// wait up to num hosts * 5s for all clients to connect
 		int numhosts = hosts.split(",").length;
 		while (numDistinctPeers(initialSeed.getPeers()) < numhosts
-				&& (System.currentTimeMillis() - startTransferTime) <= numhosts * 10000) {
+				&& (System.currentTimeMillis() - startTransferTime) <= numhosts * 5000) {
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {

@@ -40,7 +40,7 @@ public class FTClient {
 
 			while (!client.getTorrent().isInitialized()
 					|| (numDistinctPeers(client.getPeers()) < numhosts && System
-							.currentTimeMillis() - timeStart <= numhosts * 10000)) {
+							.currentTimeMillis() - timeStart <= numhosts * 5000)) {
 				Thread.sleep(1000);
 			}
 

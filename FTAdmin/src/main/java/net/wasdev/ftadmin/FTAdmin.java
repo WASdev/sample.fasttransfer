@@ -55,12 +55,12 @@ public class FTAdmin {
 		Config config = readConfig(new File(args[0]));
 		// get the package to transfer and where to transfer to
 		File packageFile = new File(args[1]);
-		String destDir = args[2];
+		String destDir = removeBackslash(args[2]);
 		String destHosts = readHosts(new File(args[3]));
 		// is the package already on the controller?
 		Boolean onController = readOnController(args[4]);
 		// logs directory
-		String logsDir = args[5];
+		String logsDir = removeBackslash(args[5]);
 		HashSet<String> complHosts = executeTransfer(config, packageFile,
 				destDir, destHosts, onController);
 		complHostsReport(complHosts, packageFile.getName(), logsDir);
@@ -69,7 +69,6 @@ public class FTAdmin {
 	private static void printHelp() {
 		System.out
 				.println("Takes five arguments: config_file path_to_package dest_dir hosts onController logs_dir\n");
-		System.out.println("dest_dir and logs_dir should not end with a slash\n");
 		System.out
 				.println("Config_file should be formatted as follows:\n"
 						+ "quick start security username\n"
@@ -100,7 +99,7 @@ public class FTAdmin {
 			config.setTruststorePass(configReader.readLine());
 			config.setHost(configReader.readLine());
 			config.setPort(configReader.readLine());
-			config.setContrPackageDir(configReader.readLine());
+			config.setContrPackageDir(removeBackslash(configReader.readLine()));
 			str_clearCPD = configReader.readLine();
 		} catch (FileNotFoundException e) {
 			System.out.println("Config file does not exist!");
@@ -315,5 +314,12 @@ public class FTAdmin {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private static String removeBackslash(String dir){
+		if(dir.endsWith("/")){
+			return dir.substring(0, dir.length()-1);
+		}
+		else return dir;
 	}
 }
