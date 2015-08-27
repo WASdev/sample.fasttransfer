@@ -6,6 +6,8 @@ The task that this sample looks at is the distribution of files within the colle
 
 This sample introduces a new feature that solves the aforementioned problems. It allows for a single MBean call that quickly and efficiently distributes files to a list of hosts using the BitTorrent protocol. Speed increases greatly because all machines are sending files to each other, instead of one machine sending at a time. See more on BitTorrent [here](https://en.wikipedia.org/wiki/BitTorrent)
 
+You can build from source using the "Building with Maven" instructions below, or you can use the [prebuilt jars](docs/Prebuilt.md). The other steps below apply equally to pre-built or self-build jars.
+
 * [Building with Maven](docs/Building.md)
 * [Getting WAS Liberty](docs/Liberty.md)
 * [Setting Up a Collective](docs/Collective.md)

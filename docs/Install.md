@@ -1,3 +1,3 @@
 ## Installing the Feature
 
-Only the controller server needs to have this feature installed. First, go to the user directory for the server. The default location will be wlp/usr. We will assume this is the case. Place net.wasdev.fasttransfer.jar into wlp/usr/extension/lib/ and net.wasdev.fasttransfer.mf into wlp/usr/extension/lib/features/. Create these directories if they do not exist. net.wasdev.fasttransfer.mf  can be found in the net.wasdev.fasttransfer project folder.   
+Only the controller server needs to have this feature installed. First, go to the user directory for the server. The default location will be wlp/usr. We will assume this is the case. Place net.wasdev.fasttransfer.jar into wlp/usr/extension/lib/ and net.wasdev.fasttransfer.mf into wlp/usr/extension/lib/features/. Create these directories if they do not exist. net.wasdev.fasttransfer.mf can be found in the net.wasdev.fasttransfer project folder.   
