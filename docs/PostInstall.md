@@ -23,7 +23,7 @@ To allow the controller to run commands on the hosts add
 
 ### Directory Config
 
-Now, create two folders following the pattern x and x-config. For example, package and package-config. package is where you will keep files that you want to distribute. package-config is used by the feature. Move FTClient.jar to package-config. Next, move the truststore for your controller server to package-config. This can be found in ${LibertyUserDirectory}/servers/myController/resources/security/trust.jks
+Now, create two folders following the pattern x and x-config. For example, package and package-config. package is where you will keep files that you want to distribute. package-config is used by the feature. Move FTClient.jar to package-config. Next, move the truststore for your controller server to package-config. This can be found in ${wlp.usr.dir}/servers/myController/resources/security/trust.jks
 
 
 ### Other
