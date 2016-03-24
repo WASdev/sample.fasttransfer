@@ -24,7 +24,7 @@ logs_dir is the directory where information about the transfer will be stored
 ```  
 
 #### Example (package does not exist on controller)
-If you need to upload the package to the controller, the 2nd argument should be the path to and including the file. The onController argument (5th argument) should be false to indicate the package does not already exist on the controller.
+If you need to upload the package to the controller, the 2nd argument should be the path to and including the file. The `onController` argument (5th argument) should be `false` to indicate the package does not already exist on the controller.
 ```bash
 $java -jar FTAdmin.jar config uploadthisfile /home/ibmadmin/torrentdrop hosts false logs/
 
@@ -35,7 +35,7 @@ Starting fast transfer process...
 ``` 
 
 ### Example (package already exists on controller)
-If the package already exists on the controller, the 2nd argument should be the name of the package. The directory path containing the package is specified in the config file (see config for more details). Set onController argument to 'true'.
+If the package already exists on the controller, the 2nd argument should be the name of the package. The directory path containing the package is specified in the config file (see config for more details). Set `onController` argument to `true`.
 
 ```bash
 $java -jar FTAdmin.jar config testFile3_23 /home/ibmadmin/torrentdrop hosts true logs/
