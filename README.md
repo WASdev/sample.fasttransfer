@@ -1,4 +1,4 @@
-# WebSphere Liberty User Feature: Fast Transfer
+# WebSphere Liberty: Fast Transfer [![Build Status](https://travis-ci.org/WASdev/sample.fasttransfer.svg?branch=master)](https://travis-ci.org/WASdev/sample.fasttransfer)
 
 Since version 8.5.5, WAS Liberty has supported the Liberty collective. A collective is a group of Liberty servers that consists of normal members which are then managed by special members known as controllers. The controllers can also manage hosts without Liberty servers on them. One advantage of collectives is that the controller(s) keeps track of the security credentials for all of its members, so a client only needs to connect to one machine in the collective in order to perform administrative tasks on the collective as a whole. 
 
